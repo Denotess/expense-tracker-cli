@@ -12,8 +12,8 @@ import (
 type Expense struct {
 	ID          int64     `json:"id"`
 	Amount      int64     `json:"amount"`
-	Description string    `json:"desciption"`
-	Date        time.Time `json:"time"`
+	Description string    `json:"description"`
+	Date        time.Time `json:"date"`
 }
 
 type Store struct {
@@ -41,10 +41,10 @@ func (s *Store) Load() ([]Expense, error) {
 		}
 		return nil, err
 	}
+	if len(file) == 0 {
+		return []Expense{}, nil
+	}
 	if err = json.Unmarshal(file, &expenses); err != nil {
-		if len(file) == 0 {
-			return []Expense{}, nil
-		}
 		return nil, err
 	}
 	return expenses, nil
@@ -53,13 +53,10 @@ func (s *Store) Load() ([]Expense, error) {
 
 func (s *Store) Save(expenses []Expense) error {
 	dir := filepath.Dir(s.Path)
-	if err := os.Mkdir(dir, 0o755); err != nil {
-		if errors.Is(err, os.ErrExist) {
-			return nil
-		}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	file, err := json.MarshalIndent(expenses, "", "   ")
+	file, err := json.MarshalIndent(expenses, "", " ")
 	if err != nil {
 		return err
 	}
@@ -82,11 +79,12 @@ func (s *Store) Add(amount int64, description string) (Expense, error) {
 	if strings.TrimSpace(description) == "" {
 		return Expense{}, errors.New("description must not be empty")
 	}
-	expenses = append(expenses, Expense{ID: id, Amount: amount, Description: description, Date: time.Now()})
+	now := time.Now()
+	expenses = append(expenses, Expense{ID: id, Amount: amount, Description: description, Date: now})
 	if err := s.Save(expenses); err != nil {
 		return Expense{}, err
 	}
-	newExpense := Expense{ID: id, Amount: amount, Description: description, Date: time.Now()}
+	newExpense := Expense{ID: id, Amount: amount, Description: description, Date: now}
 	return newExpense, nil
 }
 
@@ -129,23 +127,26 @@ func (s *Store) Update(id, amount int64, description string) error {
 	if err != nil {
 		return err
 	}
-	expensesLen := int64(len(expenses))
-	if id > expensesLen || id < expensesLen {
-		return errors.New("invalid id")
+	if id < 0 {
+		return errors.New("id must be > 0")
 	}
-	var expensesNew []Expense
+	expensesNew := make([]Expense, 0, len(expenses))
+
 	found := false
 	for _, expense := range expenses {
 		if expense.ID == id {
-			expensesNew = append(expensesNew, Expense{Amount: amount, Description: description})
+			expensesNew = append(expensesNew, Expense{ID: expense.ID, Amount: amount, Description: description, Date: expense.Date})
 			found = true
+			continue
 		}
 		expensesNew = append(expensesNew, expense)
 	}
 	if !found {
 		return errors.New("expense not found")
 	}
-	s.Save(expensesNew)
+	if err = s.Save(expensesNew); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -160,7 +161,7 @@ func (s *Store) Summary(month int) (int64, error) {
 	m := time.Month(month)
 	var sum int64
 	for _, expense := range expenses {
-		if month != 0 && expense.Date.Month() != time.Month(m) {
+		if month != 0 && expense.Date.Month() != m {
 			continue
 		}
 		sum += expense.Amount
