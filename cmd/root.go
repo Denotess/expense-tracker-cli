@@ -13,7 +13,6 @@ var (
 	store     *storage.Store
 )
 
-// rootCmd is the base command for the CLI.
 var rootCmd = &cobra.Command{
 	Use:   "expense-tracker",
 	Short: "A simple expense tracker",
