@@ -138,7 +138,7 @@ func (s *Store) Update(id, amount int64, description string) error {
 	for _, expense := range expenses {
 		if expense.ID == id {
 			expensesNew = append(expensesNew, Expense{Amount: amount, Description: description})
-			found = false
+			found = true
 		}
 		expensesNew = append(expensesNew, expense)
 	}
