@@ -53,3 +53,5 @@ The file is a JSON array of expense objects with these fields:
 - `amount` (integer)
 - `description` (string)
 - `date` (RFC3339 timestamp)
+
+[Link to Project Idea](https://roadmap.sh/projects/expense-tracker)
