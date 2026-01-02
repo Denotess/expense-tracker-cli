@@ -124,6 +124,31 @@ func (s *Store) List() ([]Expense, error) {
 	return expenses, nil
 }
 
+func (s *Store) Update(id, amount int64, description string) error {
+	expenses, err := s.Load()
+	if err != nil {
+		return err
+	}
+	expensesLen := int64(len(expenses))
+	if id > expensesLen || id < expensesLen {
+		return errors.New("invalid id")
+	}
+	var expensesNew []Expense
+	found := false
+	for _, expense := range expenses {
+		if expense.ID == id {
+			expensesNew = append(expensesNew, Expense{Amount: amount, Description: description})
+			found = false
+		}
+		expensesNew = append(expensesNew, expense)
+	}
+	if !found {
+		return errors.New("expense not found")
+	}
+	s.Save(expensesNew)
+	return nil
+}
+
 func (s *Store) Summary(month int) (int64, error) {
 	expenses, err := s.Load()
 	if err != nil {
